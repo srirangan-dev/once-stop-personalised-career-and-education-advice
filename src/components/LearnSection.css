@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+/* ── Section Wrapper ── */
+.ls-section {
+  font-family: 'DM Sans', sans-serif;
+  background: #FFFBF5;
+  padding: 100px 24px 80px;    /* 100px top to clear fixed Navbar */
+  min-height: 100vh;
+  color: #334155;
+}
+
+/* ── Hero ── */
+.ls-hero {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 48px;
+}
+
+.ls-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  color: #F97316;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 50px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.ls-hero-title {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 12px;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.ls-hero-title span {
+  background: linear-gradient(135deg, #F97316, #F59E0B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ls-hero-sub {
+  color: #64748B;
+  font-size: 1rem;
+  margin: 0 0 28px;
+  line-height: 1.6;
+}
+
+/* ── Search ── */
+.ls-search-wrap {
+  position: relative;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.ls-search-wrap input {
+  width: 100%;
+  padding: 14px 20px 14px 46px;
+  border-radius: 50px;
+  border: 1.5px solid #E8E0D5;
+  background: #ffffff;
+  color: #0F172A;
+  font-size: 0.92rem;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.ls-search-wrap input::placeholder { color: #94A3B8; }
+
+.ls-search-wrap input:focus {
+  border-color: #F97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.ls-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+  pointer-events: none;
+}
+
+/* ── Topic Pills ── */
+.ls-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ls-pill {
+  padding: 8px 20px;
+  border-radius: 50px;
+  background: #ffffff;
+  border: 1.5px solid #E8E0D5;
+  color: #64748B;
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+}
+
+.ls-pill:hover {
+  border-color: #F97316;
+  color: #F97316;
+  background: rgba(249, 115, 22, 0.04);
+}
+
+.ls-pill.active {
+  background: linear-gradient(135deg, #F97316, #F59E0B);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+}
+
+/* ── Stats Bar ── */
+.ls-stats {
+  text-align: center;
+  font-size: 0.82rem;
+  color: #94A3B8;
+  margin-bottom: 32px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.ls-stats strong { color: #F97316; }
+
+/* ── Grid ── */
+.ls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── No Results ── */
+.ls-no-results {
+  text-align: center;
+  padding: 64px 24px;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.ls-no-results-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.ls-no-results h3 {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.1rem;
+  color: #0F172A;
+  margin: 0 0 8px;
+}
+
+.ls-no-results p {
+  color: #94A3B8;
+  font-size: 0.9rem;
+  margin: 0 0 20px;
+}
+
+.ls-reset-btn {
+  padding: 10px 24px;
+  border-radius: 50px;
+  border: 1.5px solid #F97316;
+  background: transparent;
+  color: #F97316;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ls-reset-btn:hover {
+  background: #F97316;
+  color: white;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .ls-section { padding: 90px 16px 60px; }
+  .ls-grid    { grid-template-columns: 1fr; }
+}
