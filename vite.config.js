@@ -5,11 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist',
+    outDir: 'dist', // default folder Vercel expects
   },
-  server: {
-    port: 5173,
-  },
-  // Needed for React Router to handle SPA routes on Vercel
-  base: '/',
+  base: '/', // necessary for React Router SPA
 });
