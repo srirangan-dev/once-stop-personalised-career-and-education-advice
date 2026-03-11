@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  
+
   // Base path for production builds (important for Vercel)
   base: mode === 'development' ? '/' : './',
 
@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
     } : {},
   },
 
-  // Optional: Build output folder (Vercel default is "dist")
+  // Build output folder
   build: {
     outDir: 'dist',
   },
