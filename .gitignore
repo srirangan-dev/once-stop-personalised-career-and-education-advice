@@ -1,4 +1,3 @@
+node_modules/
+dist/
 .env
-server/.env
-node_modules
-dist
