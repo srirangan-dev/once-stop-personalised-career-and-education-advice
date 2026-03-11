@@ -6,11 +6,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ CORS must be defined ONCE at the top before routes
+// ✅ CORS defined once before routes
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://your-frontend.vercel.app"  // ← replace with your actual Vercel URL
+    "https://project-finder.vercel.app"   // ✅ replace with your real Vercel URL
   ],
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type", "Authorization"]
@@ -32,5 +32,5 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('❌ MongoDB Error:', err));
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
