@@ -11,7 +11,7 @@ import { removeCollege, getQuizResult, getSavedColleges, getActivityLog } from '
     return `${Math.floor(s / 86400)}d ago`
   }
 
-  function StatCard({ emoji, label, value, sub, accent }) {
+  function StatCard({ emoji, label, value, sub, accent }) {Remove-Item .nvmrc -Force
     return (
       <div style={{
         background: accent ? 'linear-gradient(135deg,#F97316,#F59E0B)' : '#fff',
