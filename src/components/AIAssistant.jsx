@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { API_URL } from "../config";
 
 const SUGGESTIONS = [
   "📐 Explain Pythagoras theorem",
@@ -20,11 +21,8 @@ STRICT RULES:
 7. End with one helpful tip.
 8. Max 1–2 emojis.`;
 
-// ✅ Hardcoded for dev — change to "" when deployed on same domain
-const BASE_URL = "";
-
 async function callAI(apiMessages) {
-  const res = await fetch(`${BASE_URL}/api/chat`, {
+  const res = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages: apiMessages, system: SYSTEM_PROMPT })
@@ -81,7 +79,6 @@ export default function AIAssistant() {
 
   return (
     <>
-      {/* Floating Button */}
       <button
         onClick={() => setOpen(!open)}
         style={{
@@ -100,7 +97,6 @@ export default function AIAssistant() {
         {open ? "✕" : "🤖"}
       </button>
 
-      {/* Chat Window */}
       {open && (
         <div style={{
           position: "fixed", bottom: 100, right: 25,
@@ -131,7 +127,6 @@ export default function AIAssistant() {
             .pf-chip:hover { background: #fed7aa !important; }
           `}</style>
 
-          {/* Header */}
           <div style={{
             padding: "14px 16px",
             background: "linear-gradient(135deg, #f97316, #ea580c)",
@@ -151,7 +146,6 @@ export default function AIAssistant() {
             }} title="Online" />
           </div>
 
-          {/* Messages Area */}
           <div style={{
             flex: 1, padding: "14px 12px",
             overflowY: "auto", background: "#fafafa",
@@ -182,7 +176,6 @@ export default function AIAssistant() {
               </div>
             ))}
 
-            {/* Typing Indicator */}
             {loading && (
               <div style={{ display: "flex", justifyContent: "flex-start" }}>
                 <div style={{
@@ -200,7 +193,6 @@ export default function AIAssistant() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Suggestion Chips */}
           {messages.length === 1 && (
             <div style={{
               padding: "8px 10px",
@@ -231,7 +223,6 @@ export default function AIAssistant() {
             </div>
           )}
 
-          {/* Input Bar */}
           <div style={{
             display: "flex", alignItems: "center",
             padding: "10px 12px", gap: 8,
@@ -271,7 +262,6 @@ export default function AIAssistant() {
               ➤
             </button>
           </div>
-
         </div>
       )}
     </>
