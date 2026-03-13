@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { API_URL } from '../config'
 
 export default function Signup() {
   const navigate = useNavigate()
@@ -21,8 +22,7 @@ export default function Signup() {
 
     setBusy(true)
     try {
-      // ✅ No BASE_URL — works on both localhost (via vite proxy) and Vercel
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
