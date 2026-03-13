@@ -9,7 +9,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://once-stop-personalised-career-and-education-advice-e5ibqutk4.vercel.app"
+    "https://once-stop-personalised-career-and-education-advice-e5ibqutk4.vercel.app",
+    "https://school-career-for-student-2007.vercel.app"
   ],
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type", "Authorization"]
