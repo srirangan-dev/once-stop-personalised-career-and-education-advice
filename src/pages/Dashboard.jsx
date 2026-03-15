@@ -1,7 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { removeCollege, getQuizResult, getSavedColleges, getActivityLog } from '../utils/Dashboardhelpers'
+import { removeCollege, getDashboardData } from '../utils/Dashboardhelpers'
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
+function getToken() {
+  return localStorage.getItem('pf_token') || localStorage.getItem('token') || ''
+}
+
+const STREAMS = [
+  { value: 'Science (PCM)',   label: '🔬 Science (PCM)',   desc: 'Physics, Chemistry, Maths' },
+  { value: 'Science (PCB)',   label: '🧬 Science (PCB)',   desc: 'Physics, Chemistry, Biology' },
+  { value: 'Commerce',        label: '📊 Commerce',        desc: 'Accounts, Business Studies' },
+  { value: 'Arts/Humanities', label: '🎭 Arts/Humanities', desc: 'History, Political Science' },
+  { value: 'Vocational',      label: '🛠️ Vocational',      desc: 'Skill-based programs' },
+]
 
 const timeAgo = (iso) => {
   if (!iso) return ''
@@ -12,13 +26,83 @@ const timeAgo = (iso) => {
   return `${Math.floor(s / 86400)}d ago`
 }
 
+// ── Stream Selector ───────────────────────────────────────────────────────────
+function StreamSelector({ currentStream, onSave }) {
+  const [selected, setSelected] = useState(currentStream || '')
+  const [saving,   setSaving]   = useState(false)
+  const [saved,    setSaved]    = useState(false)
+
+  const handleSave = async () => {
+    if (!selected) return
+    setSaving(true)
+    try {
+      const res = await fetch(`${API}/api/auth/profile`, {
+        method:  'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:  `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ stream: selected }),
+      })
+      if (res.ok) {
+        onSave(selected)
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2500)
+      }
+    } catch (err) {
+      console.error('Stream save error:', err)
+    }
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ background:'#fff', border:'1px solid #E8E0D5', borderRadius:18, padding:'24px', marginBottom:28 }}>
+      <div style={{ fontFamily:'Sora,sans-serif', fontWeight:800, fontSize:'1rem', color:'#0F172A', marginBottom:4 }}>
+        🎓 Your Stream
+      </div>
+      <div style={{ fontSize:'0.82rem', color:'#64748B', marginBottom:18 }}>
+        Select your stream so we can show relevant careers and colleges.
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))', gap:10, marginBottom:18 }}>
+        {STREAMS.map(s => (
+          <button key={s.value} onClick={() => setSelected(s.value)} style={{
+            padding:'12px 16px', borderRadius:12, cursor:'pointer', textAlign:'left',
+            border:      selected === s.value ? '2px solid #F97316' : '1.5px solid #E8E0D5',
+            background:  selected === s.value ? '#FFF4ED' : '#fff',
+            boxShadow:   selected === s.value ? '0 0 0 3px rgba(249,115,22,0.1)' : 'none',
+            transition: 'all 0.2s',
+          }}>
+            <div style={{ fontFamily:'Sora,sans-serif', fontWeight:700, fontSize:'0.85rem', color: selected === s.value ? '#F97316' : '#0F172A', marginBottom:3 }}>
+              {s.label}
+            </div>
+            <div style={{ fontSize:'0.72rem', color:'#94A3B8' }}>{s.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      <button onClick={handleSave} disabled={!selected || saving} style={{
+        padding:'10px 28px', borderRadius:50, border:'none',
+        cursor:     selected && !saving ? 'pointer' : 'not-allowed',
+        background: saved    ? '#10B981' :
+                    selected ? 'linear-gradient(135deg,#F97316,#F59E0B)' : '#E2E8F0',
+        color:'#fff', fontFamily:'DM Sans,sans-serif', fontWeight:700, fontSize:'0.85rem',
+        boxShadow:  selected ? '0 4px 14px rgba(249,115,22,0.3)' : 'none',
+        transition: 'all 0.3s',
+      }}>
+        {saving ? '⏳ Saving…' : saved ? '✅ Saved!' : '💾 Save Stream'}
+      </button>
+    </div>
+  )
+}
+
 // ── Stat Card ─────────────────────────────────────────────────────────────────
 function StatCard({ emoji, label, value, sub, accent }) {
   return (
     <div style={{
       background: accent ? 'linear-gradient(135deg,#F97316,#F59E0B)' : '#fff',
       borderRadius: 18, padding: '22px 24px',
-      border: accent ? 'none' : '1px solid #E8E0D5',
+      border:    accent ? 'none' : '1px solid #E8E0D5',
       boxShadow: accent ? '0 8px 28px rgba(249,115,22,0.28)' : '0 2px 12px rgba(15,23,42,0.06)',
       display: 'flex', flexDirection: 'column', gap: 6,
     }}>
@@ -44,15 +128,14 @@ function EmptyState({ emoji, title, desc, to, cta }) {
   )
 }
 
-// ── Full Quiz Result Card ─────────────────────────────────────────────────────
+// ── Quiz Result Card ──────────────────────────────────────────────────────────
 function QuizCard({ quizResult, navigate, full }) {
-  const pct          = quizResult.matchScore || 0
-  const fieldColor   = quizResult.fieldColor || '#F97316'
-  const fieldIcon    = quizResult.fieldIcon  || '🎯'
+  const pct          = quizResult.matchScore  || 0
+  const fieldColor   = quizResult.fieldColor  || '#F97316'
+  const fieldIcon    = quizResult.fieldIcon   || '🎯'
   const verdictEmoji = quizResult.verdictEmoji || '🎯'
   const verdictLabel = quizResult.verdictLabel || ''
 
-  // verdict color based on score
   const vColor =
     pct >= 80 ? '#10B981' :
     pct >= 60 ? '#3B82F6' :
@@ -60,8 +143,6 @@ function QuizCard({ quizResult, navigate, full }) {
 
   return (
     <div style={{ background:'#fff', borderRadius:20, border:'1px solid #E8E0D5', overflow:'hidden', boxShadow:'0 2px 12px rgba(15,23,42,0.06)' }}>
-
-      {/* Result header */}
       <div style={{ background:'linear-gradient(135deg,#0F172A,#1E293B)', padding:'24px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:16 }}>
         <div style={{ display:'flex', alignItems:'center', gap:14 }}>
           <div style={{ width:52, height:52, borderRadius:14, background:'rgba(255,255,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.8rem', flexShrink:0 }}>
@@ -69,12 +150,12 @@ function QuizCard({ quizResult, navigate, full }) {
           </div>
           <div>
             <div style={{ fontSize:'0.7rem', color:'rgba(255,255,255,0.45)', fontFamily:'Sora,sans-serif', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Top Career Match</div>
-            <div style={{ fontFamily:'Sora,sans-serif', fontWeight:800, fontSize:'1.2rem', color:'white' }}>{quizResult.topCareer}</div>
+            <div style={{ fontFamily:'Sora,sans-serif', fontWeight:800, fontSize:'1.2rem', color:'white' }}>
+              {quizResult.topCareer || quizResult.topMatch || quizResult.career || 'Your Top Career'}
+            </div>
             {quizResult.fieldTitle && <div style={{ fontSize:'0.78rem', color:fieldColor, fontWeight:600, marginTop:2 }}>{quizResult.fieldTitle}</div>}
           </div>
         </div>
-
-        {/* Score ring */}
         <div style={{ position:'relative', width:90, height:90, flexShrink:0 }}>
           <svg viewBox="0 0 80 80" style={{ width:'100%', height:'100%', transform:'rotate(-90deg)' }}>
             <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="7" />
@@ -90,8 +171,7 @@ function QuizCard({ quizResult, navigate, full }) {
         </div>
       </div>
 
-      {/* Verdict badge */}
-      <div style={{ padding:'10px 24px', background: vColor + '15', borderBottom:'1px solid #E8E0D5', display:'flex', alignItems:'center', gap:8 }}>
+      <div style={{ padding:'10px 24px', background: vColor+'15', borderBottom:'1px solid #E8E0D5', display:'flex', alignItems:'center', gap:8 }}>
         <span style={{ fontSize:'1rem' }}>{verdictEmoji}</span>
         <span style={{ fontFamily:'Sora,sans-serif', fontWeight:700, fontSize:'0.82rem', color:vColor }}>{verdictLabel}</span>
         {quizResult.takenAt && (
@@ -102,12 +182,10 @@ function QuizCard({ quizResult, navigate, full }) {
       </div>
 
       <div style={{ padding:'20px 24px' }}>
-        {/* Description */}
         {quizResult.description && (
           <p style={{ fontSize:'0.85rem', color:'#64748B', lineHeight:1.6, marginBottom:20 }}>{quizResult.description}</p>
         )}
 
-        {/* Score bars */}
         {quizResult.scores && Object.keys(quizResult.scores).length > 0 && (
           <div style={{ marginBottom:20 }}>
             <div style={{ fontFamily:'Sora,sans-serif', fontWeight:700, fontSize:'0.78rem', color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:12 }}>Question-by-Question Score</div>
@@ -125,14 +203,13 @@ function QuizCard({ quizResult, navigate, full }) {
               ))}
               {!full && quizResult.scores && Object.keys(quizResult.scores).length > 4 && (
                 <div style={{ fontSize:'0.75rem', color:'#94A3B8', textAlign:'center', marginTop:4 }}>
-                  +{Object.keys(quizResult.scores).length - 4} more questions — see Quiz Results tab
+                  +{Object.keys(quizResult.scores).length - 4} more — see Quiz Results tab
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* All careers */}
         {full && quizResult.allCareers?.length > 0 && (
           <div style={{ marginBottom:20 }}>
             <div style={{ fontFamily:'Sora,sans-serif', fontWeight:700, fontSize:'0.78rem', color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:12 }}>All Recommended Careers</div>
@@ -152,11 +229,10 @@ function QuizCard({ quizResult, navigate, full }) {
           </div>
         )}
 
-        {/* Stats row */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:18 }}>
           {[
-            { label:'Score', value:`${quizResult.totalScore||0}/${quizResult.maxScore||0}`, color:vColor },
-            { label:'Match',  value:`${pct}%`,             color:vColor },
+            { label:'Score',  value:`${quizResult.totalScore||0}/${quizResult.maxScore||0}`, color:vColor },
+            { label:'Match',  value:`${pct}%`, color:vColor },
             { label:'Salary', value:quizResult.avgSalary || '—', color:'#F97316' },
           ].map(s => (
             <div key={s.label} style={{ background:'#F8FAFC', borderRadius:10, padding:'10px', textAlign:'center', border:'1px solid #E8E0D5' }}>
@@ -166,7 +242,6 @@ function QuizCard({ quizResult, navigate, full }) {
           ))}
         </div>
 
-        {/* Buttons */}
         <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
           <Link to="/careers" style={{ flex:1, minWidth:120, padding:'9px 20px', borderRadius:50, textDecoration:'none', background:'linear-gradient(135deg,#F97316,#F59E0B)', color:'#fff', fontFamily:'DM Sans,sans-serif', fontWeight:700, fontSize:'0.82rem', textAlign:'center', boxShadow:'0 4px 14px rgba(249,115,22,0.3)' }}>
             View Career Map →
@@ -182,9 +257,9 @@ function QuizCard({ quizResult, navigate, full }) {
 
 // ── College Card ──────────────────────────────────────────────────────────────
 function CollegeCard({ college, onRemove, full }) {
-  const accentColor = college.color || '#F97316'
-  const bgColor     = college.bg    || '#FFF4ED'
-  const icon        = college.icon  || '🏫'
+  const accentColor = college.color  || '#F97316'
+  const bgColor     = college.bg     || '#FFF4ED'
+  const icon        = college.icon   || '🏫'
 
   return (
     <div style={{ background:bgColor, borderRadius:18, border:`1px solid ${college.border || '#E8E0D5'}`, padding:'18px 20px', boxShadow:'0 2px 10px rgba(15,23,42,0.05)', display:'flex', flexDirection:'column', gap:8 }}>
@@ -204,7 +279,6 @@ function CollegeCard({ college, onRemove, full }) {
           Remove
         </button>
       </div>
-
       {full && (
         <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
           {college.type && (
@@ -224,77 +298,97 @@ function CollegeCard({ college, onRemove, full }) {
           )}
         </div>
       )}
-
       {full && (college.mapsUrl || college.website) && (
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           {college.mapsUrl && <a href={college.mapsUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize:'0.75rem', color:accentColor, textDecoration:'none', fontWeight:600 }}>🗺️ Google Maps</a>}
           {college.website && <a href={college.website} target="_blank" rel="noopener noreferrer" style={{ fontSize:'0.75rem', color:'#3B82F6', textDecoration:'none', fontWeight:600 }}>🌐 Website</a>}
         </div>
       )}
-
       <div style={{ fontSize:'0.7rem', color:'#CBD5E1' }}>Saved {timeAgo(college.savedAt) || 'recently'}</div>
     </div>
   )
 }
 
+function getTopCareerLabel(quizResult) {
+  if (!quizResult) return null
+  return quizResult.topCareer || quizResult.topMatch || quizResult.career || null
+}
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { user }    = useAuth()
-  const navigate    = useNavigate()
+  const { user, updateUser } = useAuth()
+  const navigate             = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
 
-  const readData = useCallback(() => ({
-    quizResult:    getQuizResult(),
-    savedColleges: getSavedColleges(),
-    activityLog:   getActivityLog(),
-  }), [])
+  const [data, setData] = useState({
+    quizResult:    null,
+    savedColleges: [],
+    activityLog:   [],
+  })
+  const [loading, setLoading] = useState(true)
 
-  const [data, setData] = useState(readData)
+  const fetchData = useCallback(async () => {
+    const result = await getDashboardData()
+    setData(result)
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
-    const refresh = () => setData(readData())
+    fetchData()
+    const refresh = () => fetchData()
     window.addEventListener('pathfinder:storage', refresh)
     window.addEventListener('focus', refresh)
     return () => {
       window.removeEventListener('pathfinder:storage', refresh)
       window.removeEventListener('focus', refresh)
     }
-  }, [readData])
+  }, [fetchData])
+
+  const handleRemove = async (id) => {
+    await removeCollege(id)
+    fetchData()
+  }
 
   const { quizResult, savedColleges, activityLog } = data
-
-  const handleRemove = (id) => {
-    removeCollege(id)
-    setData(readData())
-  }
 
   const initials  = user?.name
     ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
     : user?.username?.slice(0, 2).toUpperCase() || '??'
-  const firstName = (user?.name || user?.username || 'Student').split(' ')[0]
+  const firstName     = (user?.name || user?.username || 'Student').split(' ')[0]
+  const topCareerLabel = getTopCareerLabel(quizResult)
 
   const tabs = [
     { id:'overview',  label:'Overview',       emoji:'📈' },
     { id:'quiz',      label:'Quiz Results',   emoji:'🎯' },
-    { id:'colleges',  label:'Saved Colleges', emoji:'🏫', count:savedColleges.length },
+    { id:'colleges',  label:'Saved Colleges', emoji:'🏫', count: savedColleges.length },
     { id:'activity',  label:'Activity',       emoji:'📣' },
   ]
+
+  if (loading) {
+    return (
+      <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#FFFBF5', gap:16 }}>
+        <div style={{ fontSize:'2.5rem', animation:'spin 1s linear infinite' }}>⏳</div>
+        <div style={{ fontFamily:'Sora,sans-serif', fontWeight:700, color:'#94A3B8', fontSize:'1rem' }}>Loading your dashboard…</div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
 
   return (
     <div style={{ minHeight:'100vh', background:'#FFFBF5', fontFamily:'DM Sans,sans-serif', paddingTop:88 }}>
       <div style={{ maxWidth:1000, margin:'0 auto', padding:'0 20px 60px' }}>
 
-        {/* Profile banner */}
+        {/* ── Profile banner ── */}
         <div style={{ background:'linear-gradient(135deg,#FFF4ED,#FFFBF5)', border:'1px solid #E8E0D5', borderRadius:24, padding:'28px 32px', display:'flex', alignItems:'center', gap:20, marginBottom:28, flexWrap:'wrap' }}>
           <div style={{ width:64, height:64, borderRadius:18, flexShrink:0, background:'linear-gradient(135deg,#F97316,#F59E0B)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Sora,sans-serif', fontWeight:800, fontSize:22, color:'#fff', boxShadow:'0 8px 24px rgba(249,115,22,0.3)' }}>
             {initials}
           </div>
           <div style={{ flex:1, minWidth:200 }}>
             <div style={{ fontFamily:'Sora,sans-serif', fontWeight:800, fontSize:'1.3rem', color:'#0F172A' }}>Welcome back, {firstName}! 👋</div>
-            <div style={{ fontSize:'0.85rem', color:'#64748B', marginTop:4 }}>
+            <div style={{ fontSize:'0.85rem', color:'#64748B', marginTop:4, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
               {user?.email}
               {user?.stream && (
-                <span style={{ marginLeft:10, background:'rgba(249,115,22,0.1)', color:'#F97316', padding:'2px 10px', borderRadius:50, fontSize:'0.75rem', fontWeight:700, border:'1px solid rgba(249,115,22,0.2)' }}>
+                <span style={{ background:'rgba(249,115,22,0.1)', color:'#F97316', padding:'2px 10px', borderRadius:50, fontSize:'0.75rem', fontWeight:700, border:'1px solid rgba(249,115,22,0.2)' }}>
                   {user.stream}
                 </span>
               )}
@@ -310,7 +404,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* ── Tabs ── */}
         <div style={{ display:'flex', gap:6, marginBottom:24, overflowX:'auto', paddingBottom:4 }}>
           {tabs.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding:'9px 18px', borderRadius:50, cursor:'pointer', flexShrink:0, background: activeTab===t.id ? 'linear-gradient(135deg,#F97316,#F59E0B)' : '#fff', border: activeTab===t.id ? 'none' : '1.5px solid #E8E0D5', color: activeTab===t.id ? '#fff' : '#64748B', fontFamily:'DM Sans,sans-serif', fontWeight:700, fontSize:'0.82rem', boxShadow: activeTab===t.id ? '0 4px 14px rgba(249,115,22,0.25)' : 'none', transition:'all 0.2s' }}>
@@ -322,11 +416,23 @@ export default function Dashboard() {
         {/* ── OVERVIEW ── */}
         {activeTab === 'overview' && (
           <div>
+            {/* ✅ Stream Selector */}
+            <StreamSelector
+              currentStream={user?.stream}
+              onSave={(stream) => updateUser({ stream })}
+            />
+
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:16, marginBottom:28 }}>
-              <StatCard emoji="🎯" label="Quiz Status"    value={quizResult ? 'Done ✔' : 'Pending'}  sub={quizResult ? `Top: ${quizResult.topCareer}` : 'Take the career quiz'} accent={!!quizResult} />
-              <StatCard emoji="🏫" label="Saved Colleges" value={savedColleges.length}                sub={savedColleges.length ? `Latest: ${savedColleges[0]?.name}` : 'No colleges saved yet'} />
-              <StatCard emoji="📣" label="Activities"     value={activityLog.length}                  sub={activityLog.length ? timeAgo(activityLog[0]?.time) : 'No activity yet'} />
-              <StatCard emoji="🎓" label="Stream"         value={user?.stream || '—'}                 sub="Your selected stream" />
+              <StatCard
+                emoji="🎯"
+                label="Quiz Status"
+                value={quizResult ? 'Done ✔' : 'Pending'}
+                sub={quizResult ? (topCareerLabel ? `Top: ${topCareerLabel}` : 'Quiz completed ✔') : 'Take the career quiz'}
+                accent={!!quizResult}
+              />
+              <StatCard emoji="🏫" label="Saved Colleges" value={savedColleges.length} sub={savedColleges.length ? `Latest: ${savedColleges[0]?.name}` : 'No colleges saved yet'} />
+              <StatCard emoji="📣" label="Activities"     value={activityLog.length}   sub={activityLog.length ? timeAgo(activityLog[0]?.time) : 'No activity yet'} />
+              <StatCard emoji="🎓" label="Stream"         value={user?.stream || '—'}  sub="Your selected stream" />
             </div>
 
             <h3 style={{ fontFamily:'Sora,sans-serif', fontWeight:800, fontSize:'1rem', color:'#0F172A', marginBottom:14 }}>🎯 Quiz Results</h3>

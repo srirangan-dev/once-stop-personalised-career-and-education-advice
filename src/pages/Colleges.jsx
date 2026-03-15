@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { saveCollege, removeCollege } from '../utils/Dashboardhelpers'
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  HELPERS
@@ -17,18 +18,18 @@ function getDistance(lat1, lng1, lat2, lng2) {
 function detectType(name = '', tags = {}) {
   const n = (name + ' ' + (tags.amenity || '') + ' ' + (tags.isced_level || '')).toLowerCase()
   if (n.includes('medical') || n.includes('nursing') || n.includes('pharmacy'))
-    return { type: 'Medical',       icon: '🏥', color: '#EF4444', bg: '#FEF2F2', border: '#FECACA' }
+    return { type: 'Medical',        icon: '🏥', color: '#EF4444', bg: '#FEF2F2', border: '#FECACA' }
   if (n.includes('polytechnic') || n.includes('polytech'))
-    return { type: 'Polytechnic',   icon: '⚙️', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE' }
+    return { type: 'Polytechnic',    icon: '⚙️', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE' }
   if (n.includes('engineering') || n.includes('technical') || n.includes('technology') || n.includes('iit') || n.includes('nit'))
-    return { type: 'Engineering',   icon: '🔬', color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE' }
+    return { type: 'Engineering',    icon: '🔬', color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE' }
   if (n.includes('law'))
-    return { type: 'Law',           icon: '⚖️', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A' }
+    return { type: 'Law',            icon: '⚖️', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A' }
   if (n.includes('women') || n.includes('woman') || n.includes('mahila'))
-    return { type: "Women's",       icon: '👩‍🎓', color: '#EC4899', bg: '#FDF2F8', border: '#FBCFE8' }
+    return { type: "Women's",        icon: '👩‍🎓', color: '#EC4899', bg: '#FDF2F8', border: '#FBCFE8' }
   if (n.includes('agriculture') || n.includes('agricultural'))
-    return { type: 'Agriculture',   icon: '🌾', color: '#65A30D', bg: '#F7FEE7', border: '#D9F99D' }
-  return   { type: 'Arts & Science',icon: '🎓', color: '#10B981', bg: '#F0FDF4', border: '#A7F3D0' }
+    return { type: 'Agriculture',    icon: '🌾', color: '#65A30D', bg: '#F7FEE7', border: '#D9F99D' }
+  return   { type: 'Arts & Science', icon: '🎓', color: '#10B981', bg: '#F0FDF4', border: '#A7F3D0' }
 }
 
 function isGovt(name = '', tags = {}) {
@@ -44,57 +45,44 @@ function isGovt(name = '', tags = {}) {
   )
 }
 
-// ── localStorage helpers ──────────────────────────────────────────────────────
+// ── localStorage helpers (for saved IDs only — to show saved state) ──────────
 function getSavedIds() {
-  try { return JSON.parse(localStorage.getItem('pf_saved_colleges') || '[]').map(c => c.id) }
+  try { return JSON.parse(localStorage.getItem('pf_saved_college_ids') || '[]') }
   catch { return [] }
 }
-function saveCollegeToStorage(college) {
+function addSavedId(id) {
   try {
-    const saved = JSON.parse(localStorage.getItem('pf_saved_colleges') || '[]')
-    if (saved.find(c => c.id === college.id)) return
-    saved.unshift({ ...college, savedAt: new Date().toISOString() })
-    localStorage.setItem('pf_saved_colleges', JSON.stringify(saved))
-    window.dispatchEvent(new Event('pathfinder:storage'))
+    const ids = getSavedIds()
+    if (!ids.includes(id)) {
+      ids.unshift(id)
+      localStorage.setItem('pf_saved_college_ids', JSON.stringify(ids))
+    }
   } catch {}
 }
-function removeCollegeFromStorage(id) {
+function removeSavedId(id) {
   try {
-    const saved = JSON.parse(localStorage.getItem('pf_saved_colleges') || '[]')
-    localStorage.setItem('pf_saved_colleges', JSON.stringify(saved.filter(c => c.id !== id)))
-    window.dispatchEvent(new Event('pathfinder:storage'))
+    const ids = getSavedIds().filter(i => i !== id)
+    localStorage.setItem('pf_saved_college_ids', JSON.stringify(ids))
   } catch {}
 }
 
-// ── Geocode city → lat/lng (India-specific for accuracy) ─────────────────────
+// ── Geocode city ──────────────────────────────────────────────────────────────
 async function geocodeCity(cityName) {
-  // Try with India context first for accurate Indian city coordinates
-  const queries = [
-    `${cityName}, India`,
-    `${cityName}, Tamil Nadu, India`,
-    cityName,
-  ]
+  const queries = [`${cityName}, India`, `${cityName}, Tamil Nadu, India`, cityName]
   for (const q of queries) {
     try {
-      const res = await fetch(
+      const res  = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1`,
         { headers: { 'Accept-Language': 'en' } }
       )
       const data = await res.json()
       if (!data?.length) continue
-
-      // Prefer city/town results over districts or regions
       const best =
         data.find(d => d.type === 'city') ||
         data.find(d => d.type === 'town') ||
         data.find(d => d.class === 'place') ||
         data[0]
-
-      return {
-        lat:         parseFloat(best.lat),
-        lng:         parseFloat(best.lon),
-        displayName: best.display_name,
-      }
+      return { lat: parseFloat(best.lat), lng: parseFloat(best.lon), displayName: best.display_name }
     } catch {}
   }
   return null
@@ -218,13 +206,11 @@ function CollegeCard({ college, isNearest, isSaved, onSave, onRemove }) {
       )}
 
       <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
-        {/* Icon */}
         <div style={{ width: 52, height: 52, borderRadius: 13, background: college.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0, border: `1.5px solid ${college.color}33` }}>
           {college.icon}
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Name + badges */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
             <div style={{ flex: 1 }}>
               <h4 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#1E293B', marginBottom: 4, lineHeight: 1.3 }}>{college.name}</h4>
@@ -247,7 +233,6 @@ function CollegeCard({ college, isNearest, isSaved, onSave, onRemove }) {
             </div>
           </div>
 
-          {/* Contact */}
           {(college.phone || college.website) && (
             <div style={{ display: 'flex', gap: 14, marginTop: 10, flexWrap: 'wrap' }}>
               {college.phone   && <span style={{ fontSize: '0.82rem', color: '#64748B' }}>📞 {college.phone}</span>}
@@ -255,7 +240,6 @@ function CollegeCard({ college, isNearest, isSaved, onSave, onRemove }) {
             </div>
           )}
 
-          {/* Action buttons */}
           <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
             <a href={college.mapsUrl} target="_blank" rel="noopener noreferrer"
               style={{ padding: '9px 18px', borderRadius: 10, background: college.color, color: '#fff', fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
@@ -265,6 +249,8 @@ function CollegeCard({ college, isNearest, isSaved, onSave, onRemove }) {
               style={{ padding: '9px 18px', borderRadius: 10, background: '#F8F4EF', color: '#334155', fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none', border: '1.5px solid #E8E0D5' }}>
               🌍 OpenStreetMap
             </a>
+
+            {/* ✅ FIX: Save/Remove calls backend API */}
             {isSaved ? (
               <button onClick={() => onRemove(college.id)}
                 style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #EF4444', background: '#FEF2F2', color: '#EF4444', fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
@@ -287,18 +273,18 @@ function CollegeCard({ college, isNearest, isSaved, onSave, onRemove }) {
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Colleges() {
-  const [colleges,  setColleges]  = useState([])
-  const [cityInput, setCityInput] = useState('')
-  const [cityName,  setCityName]  = useState('')
-  const [centerLat, setCenterLat] = useState(null)
-  const [centerLng, setCenterLng] = useState(null)
-  const [status,    setStatus]    = useState('idle')
-  const [radiusKm,  setRadiusKm]  = useState(20)
-  const [filter,    setFilter]    = useState('All')
-  const [search,    setSearch]    = useState('')
-  const [savedLoc,  setSavedLoc]  = useState(null)
-  const [savedIds,  setSavedIds]  = useState(() => getSavedIds())
-  const [toast,     setToast]     = useState(null)
+  const [colleges,    setColleges]    = useState([])
+  const [cityInput,   setCityInput]   = useState('')
+  const [cityName,    setCityName]    = useState('')
+  const [centerLat,   setCenterLat]   = useState(null)
+  const [centerLng,   setCenterLng]   = useState(null)
+  const [status,      setStatus]      = useState('idle')
+  const [radiusKm,    setRadiusKm]    = useState(20)
+  const [filter,      setFilter]      = useState('All')
+  const [search,      setSearch]      = useState('')
+  const [savedLoc,    setSavedLoc]    = useState(null)
+  const [savedIds,    setSavedIds]    = useState(() => getSavedIds())
+  const [toast,       setToast]       = useState(null)
   const [geocodeInfo, setGeocodeInfo] = useState(null)
 
   const showToast = (msg) => {
@@ -306,14 +292,18 @@ export default function Colleges() {
     setTimeout(() => setToast(null), 2500)
   }
 
-  const handleSave = (college) => {
-    saveCollegeToStorage(college)
+  // ✅ FIX: Save to MongoDB via API + update local saved IDs for UI
+  const handleSave = async (college) => {
+    await saveCollege(college)
+    addSavedId(college.id)
     setSavedIds(getSavedIds())
     showToast(`✅ "${college.name}" saved to dashboard!`)
   }
 
-  const handleRemove = (id) => {
-    removeCollegeFromStorage(id)
+  // ✅ FIX: Remove from MongoDB via API + update local saved IDs for UI
+  const handleRemove = async (id) => {
+    await removeCollege(id)
+    removeSavedId(id)
     setSavedIds(getSavedIds())
     showToast('🗑️ College removed from dashboard.')
   }
@@ -413,7 +403,6 @@ export default function Colleges() {
             </button>
           </div>
 
-          {/* Quick city chips */}
           <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontFamily: 'Sora, sans-serif', alignSelf: 'center' }}>Quick pick:</span>
             {['Erode', 'Chennai', 'Coimbatore', 'Bangalore', 'Delhi', 'Mumbai', 'Hyderabad', 'Jaipur', 'Pune', 'Kolkata'].map(city => (
@@ -425,14 +414,12 @@ export default function Colleges() {
           </div>
         </div>
 
-        {/* Geocode debug info */}
         {geocodeInfo && status !== 'idle' && (
           <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginBottom: 12, fontFamily: 'DM Sans, sans-serif' }}>
             {geocodeInfo} · Distances measured from city center
           </div>
         )}
 
-        {/* Status messages */}
         {status === 'searching' && (
           <div style={{ background: 'white', border: '1.5px solid #E8E0D5', borderRadius: 18, padding: '22px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 14 }}>
             <span style={{ fontSize: '1.5rem', animation: 'spin 1s linear infinite', display: 'inline-block' }}>🔍</span>
@@ -492,7 +479,6 @@ export default function Colleges() {
           </div>
         )}
 
-        {/* Filters */}
         {status === 'done' && (
           <div style={{ background: 'white', border: '1.5px solid #E8E0D5', borderRadius: 18, padding: '16px 20px', marginBottom: 20, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ flex: '1 1 200px', position: 'relative' }}>
@@ -511,10 +497,8 @@ export default function Colleges() {
           </div>
         )}
 
-        {/* Skeletons */}
         {isLoading && [1, 2, 3].map(i => <Skeleton key={i} />)}
 
-        {/* Count */}
         {status === 'done' && (
           <div style={{ marginBottom: 16, color: '#64748B', fontSize: '0.88rem' }}>
             Showing <strong style={{ color: '#1E293B' }}>{filtered.length}</strong> of {colleges.length} colleges
@@ -523,7 +507,6 @@ export default function Colleges() {
           </div>
         )}
 
-        {/* No match */}
         {status === 'done' && filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: '3rem', marginBottom: 16 }}>🏫</div>
@@ -535,7 +518,6 @@ export default function Colleges() {
           </div>
         )}
 
-        {/* Cards */}
         {filtered.map(c => (
           <CollegeCard
             key={c.id}

@@ -36,11 +36,14 @@ app.use(cors({
 
 app.use(express.json());
 
-const authRoutes = require('./routes/auth');
-const chatRoutes = require('./routes/chat');
+const authRoutes      = require('./routes/auth');
+const chatRoutes      = require('./routes/chat');
+const dashboardRoutes = require('./routes/dashboard');
 
-app.use('/api/auth', authRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api/auth',      authRoutes);
+app.use('/api/chat',      chatRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+
 app.get('/api/test', (req, res) => res.json({ ok: true, status: 'Server is running' }));
 
 mongoose.connect(process.env.MONGO_URI, {

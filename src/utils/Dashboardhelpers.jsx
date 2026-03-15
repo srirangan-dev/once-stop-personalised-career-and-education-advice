@@ -1,51 +1,90 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  DASHBOARD HELPERS — synced with Colleges.jsx & FieldQuiz.jsx
-// ─────────────────────────────────────────────────────────────────────────────
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-// ── Saved Colleges ────────────────────────────────────────────────────────────
-export function getSavedColleges() {
-  try { return JSON.parse(localStorage.getItem('pf_saved_colleges') || '[]') }
-  catch { return [] }
+function getToken() {
+  return (
+    localStorage.getItem('pf_token') ||
+    localStorage.getItem('token') ||
+    sessionStorage.getItem('token') ||
+    ''
+  )
 }
 
-export function removeCollege(id) {
+function authHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${getToken()}`,
+  }
+}
+
+export async function getDashboardData() {
   try {
-    const saved = getSavedColleges().filter(c => c.id !== id)
-    localStorage.setItem('pf_saved_colleges', JSON.stringify(saved))
-    window.dispatchEvent(new Event('pathfinder:storage'))
-  } catch {}
+    const res = await fetch(`${API}/api/dashboard`, { headers: authHeaders() })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    return {
+      quizResult:    data.quizResult    || null,
+      savedColleges: data.savedColleges || [],
+      activityLog:   data.activityLog   || [],
+    }
+  } catch (err) {
+    console.error('getDashboardData error:', err)
+    return { quizResult: null, savedColleges: [], activityLog: [] }
+  }
 }
 
-// ── Quiz Result ───────────────────────────────────────────────────────────────
-export function getQuizResult() {
-  try { return JSON.parse(localStorage.getItem('pf_quiz_result') || 'null') }
-  catch { return null }
+export async function getQuizResult() {
+  const data = await getDashboardData()
+  return data.quizResult
 }
 
-export function saveQuizResult(result) {
+export async function getSavedColleges() {
+  const data = await getDashboardData()
+  return data.savedColleges
+}
+
+export async function getActivityLog() {
+  const data = await getDashboardData()
+  return data.activityLog
+}
+
+export async function saveQuizResult(result) {
   try {
-    const toSave = { ...result, takenAt: new Date().toISOString() }
-    localStorage.setItem('pf_quiz_result', JSON.stringify(toSave))
-    logActivity({
-      emoji: '🎯',
-      title: `Quiz completed — Top match: ${result.topCareer}`,
-      desc:  result.fieldTitle || '',
+    const res = await fetch(`${API}/api/dashboard/quiz`, {
+      method:  'POST',
+      headers: authHeaders(),
+      body:    JSON.stringify(result),
     })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
     window.dispatchEvent(new Event('pathfinder:storage'))
-  } catch {}
+  } catch (err) {
+    console.error('saveQuizResult error:', err)
+  }
 }
 
-// ── Activity Log ──────────────────────────────────────────────────────────────
-export function getActivityLog() {
-  try { return JSON.parse(localStorage.getItem('pf_activity_log') || '[]') }
-  catch { return [] }
-}
-
-export function logActivity({ emoji, title, desc }) {
+export async function saveCollege(college) {
   try {
-    const log = getActivityLog()
-    log.unshift({ emoji, title, desc: desc || '', time: new Date().toISOString() })
-    localStorage.setItem('pf_activity_log', JSON.stringify(log.slice(0, 50)))
+    const res = await fetch(`${API}/api/dashboard/colleges/save`, {
+      method:  'POST',
+      headers: authHeaders(),
+      body:    JSON.stringify(college),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
     window.dispatchEvent(new Event('pathfinder:storage'))
-  } catch {}
+  } catch (err) {
+    console.error('saveCollege error:', err)
+  }
+}
+
+export async function removeCollege(id) {
+  try {
+    const res = await fetch(`${API}/api/dashboard/colleges/remove`, {
+      method:  'POST',
+      headers: authHeaders(),
+      body:    JSON.stringify({ id }),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    window.dispatchEvent(new Event('pathfinder:storage'))
+  } catch (err) {
+    console.error('removeCollege error:', err)
+  }
 }

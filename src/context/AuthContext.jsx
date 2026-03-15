@@ -3,7 +3,6 @@ import { createContext, useContext, useState } from 'react'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  // Restore user from localStorage on first load
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('pf_user')
@@ -19,10 +18,19 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null)
     localStorage.removeItem('pf_user')
+    localStorage.removeItem('pf_token')
+    localStorage.removeItem('token')
+  }
+
+  // ✅ NEW: update user fields (e.g. stream) without re-login
+  const updateUser = (fields) => {
+    const updated = { ...user, ...fields }
+    setUser(updated)
+    localStorage.setItem('pf_user', JSON.stringify(updated))
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )
