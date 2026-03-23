@@ -9,6 +9,7 @@ const FEATURES = [
     color: '#FFF7ED',
     accent: '#F97316',
   },
+  
   {
     icon: '🗺️',
     title: 'Career Path Map',
