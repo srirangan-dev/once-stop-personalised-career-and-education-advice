@@ -17,6 +17,7 @@ export default function Quiz() {
   return (
     <div style={S.page}>
 
+      
       {/* ── HERO ── */}
       <div style={S.hero}>
         <div style={S.orb1} /><div style={S.orb2} /><div style={S.grid} />
