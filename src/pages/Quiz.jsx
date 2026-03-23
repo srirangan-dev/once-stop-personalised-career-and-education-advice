@@ -6,6 +6,7 @@ export default function Quiz() {
   const [search,  setSearch]  = useState('')
   const [hovered, setHovered] = useState(null)
   const navigate = useNavigate()
+  
 
   const filtered = FIELDS.filter(f =>
     f.title.toLowerCase().includes(search.toLowerCase()) ||
