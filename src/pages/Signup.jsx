@@ -15,28 +15,29 @@ export default function Signup() {
   const update = (k, v) => { setForm(f => ({ ...f, [k]: v })); setError('') }
 
   const handleSubmit = async () => {
-    if (!form.name) { setError('Please enter your full name.'); return }
-    if (!form.email) { setError('Please enter your email.'); return }
+    if (!form.name)     { setError('Please enter your full name.'); return }
+    if (!form.email)    { setError('Please enter your email.'); return }
     if (!form.password) { setError('Please enter a password.'); return }
     if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return }
 
     setBusy(true)
     try {
-      const response = await fetch(`${API_URL}/api/auth/signup`, {
+      // ✅ Fixed: /register instead of /signup
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
-      });
+      })
 
-      const data = await response.json();
-      if (!response.ok) { setError(data.msg || 'Setup failed. Please try a different email.'); return; }
-      if (data.token) localStorage.setItem('pf_token', data.token);
-      login(data.user);
-      navigate('/');
+      const data = await response.json()
+      if (!response.ok) { setError(data.error || data.msg || 'Signup failed. Please try a different email.'); return }
+      if (data.token) localStorage.setItem('pf_token', data.token)
+      login(data.user)
+      navigate('/')
     } catch (err) {
-      setError('Something went wrong. Please check your connection.');
+      setError('Something went wrong. Please check your connection.')
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
   }
 

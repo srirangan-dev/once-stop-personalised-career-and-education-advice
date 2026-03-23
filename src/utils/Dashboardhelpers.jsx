@@ -8,7 +8,7 @@ function getToken() {
     ''
   )
 }
-
+ 
 function authHeaders() {
   return {
     'Content-Type': 'application/json',

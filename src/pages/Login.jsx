@@ -1,47 +1,45 @@
-// src/components/Login.jsx
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { API_URL, DEFAULT_HEADERS } from '../config'; // ✅ Use API_URL from config
+import { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { API_URL } from '../config'
 
 export default function Login() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
+  const navigate = useNavigate()
+  const { login } = useAuth()
 
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [showPass, setShowPass] = useState(false);
+  const [form, setForm] = useState({ email: '', password: '' })
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [showPass, setShowPass] = useState(false)
 
-  const update = (k, v) => {
-    setForm(f => ({ ...f, [k]: v }));
-    setError('');
-  };
+  const update = (k, v) => { setForm(f => ({ ...f, [k]: v })); setError('') }
 
   const handleSubmit = async () => {
-    if (!form.email) { setError('Please enter your email.'); return; }
-    if (!form.password) { setError('Please enter your password.'); return; }
-    if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (!form.email)    { setError('Please enter your email.'); return }
+    if (!form.password) { setError('Please enter your password.'); return }
+    if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return }
 
-    setBusy(true);
+    setBusy(true)
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, { // ✅ Updated URL
+      // ✅ /api/auth/login matches your backend route
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
-        headers: DEFAULT_HEADERS,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
-      });
+      })
 
-      const data = await response.json();
-      if (!response.ok) { setError(data.msg || 'Invalid credentials'); return; }
-      if (data.token) localStorage.setItem('pf_token', data.token);
-      login(data.user);
-      navigate('/');
+      const data = await response.json()
+      // ✅ Fixed: check data.error (what your backend sends), fallback to data.msg
+      if (!response.ok) { setError(data.error || data.msg || 'Invalid credentials'); return }
+      if (data.token) localStorage.setItem('pf_token', data.token)
+      login(data.user)
+      navigate('/')
     } catch (err) {
-      setError('Something went wrong. Please check your connection.');
+      setError('Something went wrong. Please check your connection.')
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
-  };
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#FBF7F2', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', paddingTop: 88 }}>
@@ -118,5 +116,5 @@ export default function Login() {
       </div>
       <style>{`@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }`}</style>
     </div>
-  );
+  )
 }

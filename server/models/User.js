@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   email:    { type: String, required: true, unique: true },
   password: { type: String, required: true },
   stream:   { type: String },
-  grade:    { type: String },
+   grade:    { type: String },
   quizResult:    { type: mongoose.Schema.Types.Mixed, default: null },
   savedColleges: { type: [mongoose.Schema.Types.Mixed], default: [] },
   activityLog:   { type: [mongoose.Schema.Types.Mixed], default: [] },
