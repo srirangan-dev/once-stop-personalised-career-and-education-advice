@@ -4,6 +4,7 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
+    
     try {
       const saved = localStorage.getItem('pf_user')
       return saved ? JSON.parse(saved) : null
