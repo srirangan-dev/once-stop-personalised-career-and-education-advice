@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+
 const CAREER_DATA = [
   {
     stream: 'Science',
