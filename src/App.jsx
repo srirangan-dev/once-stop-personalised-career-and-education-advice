@@ -16,6 +16,7 @@ import Signup            from './pages/Signup'
 import LearnSection      from './components/LearnSection'  // ✅ new
 
 
+
 export default function App() {
   return (
     <AuthProvider>
