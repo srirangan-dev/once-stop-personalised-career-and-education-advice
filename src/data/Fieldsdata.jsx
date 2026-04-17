@@ -21,6 +21,7 @@ export const FIELDS = [
     scope: 98,
     skills: ['Logical Thinking', 'Mathematics', 'Problem Solving', 'Creativity'],
   },
+  
   {
     id: 'medicine',
     icon: '🏥',
