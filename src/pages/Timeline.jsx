@@ -43,6 +43,8 @@ const EVENTS = [
     link: '#',
     priority: 'medium',
   },
+
+  
   {
     id: 4,
     title: 'Maharashtra CET Counselling Begins',
