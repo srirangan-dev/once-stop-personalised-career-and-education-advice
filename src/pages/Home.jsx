@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 
 
+
+
 const FEATURES = [
+
   {
     icon: '🧠',
     title: 'Aptitude Quiz',
