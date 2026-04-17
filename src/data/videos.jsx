@@ -8,6 +8,7 @@ const videos = [
     videoUrl: "https://www.youtube.com/embed/NybHckSEQBI?autoplay=1",
     duration: "12:34",
     level: "Beginner",
+    
   },
   {
     id: 2,
