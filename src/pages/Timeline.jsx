@@ -15,6 +15,8 @@ const EVENTS = [
     link: '#',
     priority: 'high',
   },
+
+  
   {
     id: 2,
     title: 'NSP Scholarship Application Window',
