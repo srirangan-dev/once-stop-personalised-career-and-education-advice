@@ -18,6 +18,7 @@ import LearnSection      from './components/LearnSection'  // ✅ new
 
 
 export default function App() {
+  
   return (
     <AuthProvider>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
