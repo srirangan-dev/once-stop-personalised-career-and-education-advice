@@ -38,6 +38,7 @@ function detectType(name = '', tags = {}) {
 }
 
 function isGovt(name = '', tags = {}) {
+  
   const n  = name.toLowerCase()
   const op = (tags.operator || '').toLowerCase()
   return (
