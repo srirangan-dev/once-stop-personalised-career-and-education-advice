@@ -10,8 +10,12 @@ export default function Signup() {
   
 
   const [form, setForm] = useState({ name: '', email: '', password: '' })
+  
+  
   const [error, setError] = useState('')
+  
   const [busy, setBusy] = useState(false)
+  
   const [showPass, setShowPass] = useState(false)
 
   const update = (k, v) => { setForm(f => ({ ...f, [k]: v })); setError('') }
