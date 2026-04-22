@@ -21,6 +21,8 @@ export default function FieldQuiz() {
         <p style={{ color:'#64748B', marginBottom:24 }}>We don't have a quiz for this field yet.</p>
         <Link to="/quiz" style={{ padding:'11px 28px', borderRadius:50, background:'#F97316', color:'white', textDecoration:'none', fontFamily:'Sora,sans-serif', fontWeight:700 }}>
           ← Back to All Fields
+
+          
         </Link>
       </div>
     )
