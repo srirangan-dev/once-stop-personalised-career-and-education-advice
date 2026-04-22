@@ -3,11 +3,13 @@ import { useState } from 'react'
 
 const CAREER_DATA = [
   {
+    
     stream: 'Science',
     icon: '⚗️',
     color: '#3B82F6',
     bg: '#EFF6FF',
     degrees: [
+    
       {
         name: 'B.Sc. Computer Science / IT',
         duration: '3 Years',
