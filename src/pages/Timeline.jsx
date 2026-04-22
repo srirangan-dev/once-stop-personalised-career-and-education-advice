@@ -4,6 +4,7 @@ import { useState } from 'react'
 const EVENTS = [
   {
     id: 1,
+    
     title: 'DU Undergraduate Admissions Open',
     type: 'Admission',
     date: '2025-06-01',
@@ -19,6 +20,7 @@ const EVENTS = [
   
   {
     id: 2,
+    
     title: 'NSP Scholarship Application Window',
     type: 'Scholarship',
     date: '2025-07-01',
