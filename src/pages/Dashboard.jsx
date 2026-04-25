@@ -11,7 +11,11 @@ function getToken() {
   return localStorage.getItem('pf_token') || localStorage.getItem('token') || ''
 }
 
+
+
+
 const STREAMS = [
+
   { value: 'Science (PCM)',   label: '🔬 Science (PCM)',   desc: 'Physics, Chemistry, Maths' },
   { value: 'Science (PCB)',   label: '🧬 Science (PCB)',   desc: 'Physics, Chemistry, Biology' },
   { value: 'Commerce',        label: '📊 Commerce',        desc: 'Accounts, Business Studies' },
