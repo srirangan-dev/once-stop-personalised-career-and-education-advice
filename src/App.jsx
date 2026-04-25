@@ -34,6 +34,8 @@ export default function App() {
             
 
             {/* ── Protected Routes ── */}
+
+            
             <Route path="/quiz" element={
               <ProtectedRoute><Quiz /></ProtectedRoute>
             } />
