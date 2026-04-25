@@ -9,8 +9,11 @@ const CAREER_DATA = [
     color: '#3B82F6',
     bg: '#EFF6FF',
     degrees: [
+      
     
+      
       {
+      
         name: 'B.Sc. Computer Science / IT',
         duration: '3 Years',
         careers: ['Software Developer', 'Data Analyst', 'Cybersecurity Analyst', 'App Developer'],
