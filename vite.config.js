@@ -7,6 +7,8 @@ export default defineConfig({
 
   
   build: {
+
+    
     outDir: 'dist', // default folder Vercel expects
   },
   base: '/', // necessary for React Router SPA
