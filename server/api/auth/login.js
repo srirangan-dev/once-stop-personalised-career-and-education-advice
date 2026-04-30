@@ -10,9 +10,15 @@ const UserSchema = new mongoose.Schema({
   grade: String
 });
 
+
+
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
+
+
 async function connectDB() {
+
+  
   if (mongoose.connection.readyState >= 1) return;
   await mongoose.connect(process.env.MONGODB_URI);
 }
