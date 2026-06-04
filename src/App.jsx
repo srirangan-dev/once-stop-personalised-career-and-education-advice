@@ -15,9 +15,6 @@ import Login             from './pages/Login'
 import Signup            from './pages/Signup'
 
 import LearnSection      from './components/LearnSection'  // ✅ new
-
-
-
 export default function App() {
   
   return (
@@ -67,3 +64,5 @@ export default function App() {
     </AuthProvider>
   )
 }
+
+
