@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { saveCollege, removeCollege, isCollegeSaved } from '../utils/dashboardHelpers'
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  HELPERS
@@ -29,13 +30,13 @@ function detectType(name = '', tags = {}) {
 }
 
 function isGovt(name = '', tags = {}) {
-  const n = name.toLowerCase()
+  const n  = name.toLowerCase()
   const op = (tags.operator || '').toLowerCase()
   return (
     n.includes('government') || n.includes('govt') || n.includes('sarkari') ||
-    n.includes('rajkiya') || n.includes('anna university') ||
+    n.includes('rajkiya')    || n.includes('anna university') ||
     n.includes('national institute') || n.includes('nit ') ||
-    n.includes('iit ') || n.includes('iim ') ||
+    n.includes('iit ')       || n.includes('iim ') ||
     op.includes('government') || op.includes('govt') ||
     tags.operator_type === 'government' || tags.operator_type === 'public'
   )
@@ -68,7 +69,6 @@ function deduplicateCampusBlocks(colleges) {
   return kept
 }
 
-// ── Overpass with timeout + 3 endpoints + retry ──
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
@@ -89,7 +89,6 @@ async function fetchWithTimeout(url, options, timeoutMs = 20000) {
 }
 
 async function fetchNearbyCollegesOverpass(lat, lng, radiusMeters) {
-  // Compact query — smaller payload = faster response
   const query = `[out:json][timeout:20];(node["amenity"~"college|university"](around:${radiusMeters},${lat},${lng});way["amenity"~"college|university"](around:${radiusMeters},${lat},${lng}););out center tags;`
 
   let data = null
@@ -98,12 +97,9 @@ async function fetchNearbyCollegesOverpass(lat, lng, radiusMeters) {
       const res = await fetchWithTimeout(
         endpoint,
         { method: 'POST', body: query, headers: { 'Content-Type': 'text/plain' } },
-        22000 // 22s client timeout (server timeout is 20s)
+        22000
       )
-      if (!res.ok) {
-        console.warn(`Overpass ${endpoint} returned ${res.status}`)
-        continue
-      }
+      if (!res.ok) { console.warn(`Overpass ${endpoint} returned ${res.status}`); continue }
       data = await res.json()
       if (data?.elements?.length) break
     } catch (err) {
@@ -114,7 +110,7 @@ async function fetchNearbyCollegesOverpass(lat, lng, radiusMeters) {
   if (!data?.elements?.length) return []
 
   const seen = new Set()
-  const raw = []
+  const raw  = []
 
   for (const el of data.elements) {
     const tags = el.tags || {}
@@ -128,19 +124,19 @@ async function fetchNearbyCollegesOverpass(lat, lng, radiusMeters) {
 
     const dist = getDistance(lat, lng, placeLat, placeLng)
     const { type, icon, color, bg, border } = detectType(name, tags)
-    const city = tags['addr:city'] || tags['addr:district'] || ''
-    const state = tags['addr:state'] || ''
+    const city    = tags['addr:city'] || tags['addr:district'] || ''
+    const state   = tags['addr:state'] || ''
     const address = [city, state].filter(Boolean).join(', ')
 
     raw.push({
-      id: String(el.id),
+      id:       String(el.id),
       name, type, icon, color, bg, border, address,
-      lat: placeLat, lng: placeLng, distance: dist,
-      isGovt: isGovt(name, tags),
-      website: tags.website || tags['contact:website'] || null,
-      phone: tags.phone || tags['contact:phone'] || null,
-      mapsUrl: `https://maps.google.com/?q=${encodeURIComponent(name + (address ? ' ' + address : ''))}`,
-      osmUrl: `https://www.openstreetmap.org/?mlat=${placeLat}&mlon=${placeLng}&zoom=16`,
+      lat:      placeLat, lng: placeLng, distance: dist,
+      isGovt:   isGovt(name, tags),
+      website:  tags.website || tags['contact:website'] || null,
+      phone:    tags.phone   || tags['contact:phone']   || null,
+      mapsUrl:  `https://maps.google.com/?q=${encodeURIComponent(name + (address ? ' ' + address : ''))}`,
+      osmUrl:   `https://www.openstreetmap.org/?mlat=${placeLat}&mlon=${placeLng}&zoom=16`,
     })
   }
 
@@ -160,23 +156,50 @@ function Skeleton() {
   )
 }
 
+// ── CollegeCard — now with Save / Saved toggle ────────────────────────────────
 function CollegeCard({ college, isNearest }) {
+  // Initialise from localStorage so it's correct on first render
+  const [saved, setSaved] = useState(() => isCollegeSaved(college.id))
+  const [pulse, setPulse] = useState(false)
+
+  const handleSaveToggle = (e) => {
+    e.stopPropagation()
+    if (saved) {
+      removeCollege(college.id)
+      setSaved(false)
+    } else {
+      saveCollege({
+        id:       college.id,
+        name:     college.name,
+        location: college.address,
+        type:     college.type,
+        isGovt:   college.isGovt,
+      })
+      setSaved(true)
+      // Tiny pulse animation feedback
+      setPulse(true)
+      setTimeout(() => setPulse(false), 600)
+    }
+  }
+
   return (
     <div style={{
-      background: college.bg,
-      border: `1.5px solid ${isNearest ? college.color : college.border}`,
+      background:  college.bg,
+      border:      `1.5px solid ${isNearest ? college.color : college.border}`,
       borderRadius: 18, padding: '22px 24px', marginBottom: 18, position: 'relative',
-      boxShadow: isNearest ? `0 0 0 2px ${college.color}33, 0 4px 20px ${college.color}18` : '0 1px 4px rgba(0,0,0,0.05)',
+      boxShadow:   isNearest ? `0 0 0 2px ${college.color}33, 0 4px 20px ${college.color}18` : '0 1px 4px rgba(0,0,0,0.05)',
     }}>
       {isNearest && (
         <div style={{ position: 'absolute', top: -12, left: 20, background: college.color, color: '#fff', fontSize: 11, fontWeight: 800, padding: '3px 14px', borderRadius: 99, fontFamily: 'Sora, sans-serif' }}>
           📍 NEAREST TO SEARCH LOCATION
         </div>
       )}
+
       <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
         <div style={{ width: 52, height: 52, borderRadius: 13, background: college.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0, border: `1.5px solid ${college.color}33` }}>
           {college.icon}
         </div>
+
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
             <div>
@@ -185,6 +208,7 @@ function CollegeCard({ college, isNearest }) {
                 ? <p style={{ fontSize: '0.85rem', color: '#64748B' }}>📌 {college.address}</p>
                 : <p style={{ fontSize: '0.85rem', color: '#94A3B8' }}>📌 Location via OpenStreetMap</p>}
             </div>
+
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ padding: '4px 12px', borderRadius: 50, fontSize: '0.78rem', fontFamily: 'Sora, sans-serif', fontWeight: 700, background: college.color + '20', color: college.color, border: `1px solid ${college.color}33` }}>
                 {college.type}
@@ -197,13 +221,16 @@ function CollegeCard({ college, isNearest }) {
               </span>
             </div>
           </div>
+
           {(college.phone || college.website) && (
             <div style={{ display: 'flex', gap: 14, marginTop: 10, flexWrap: 'wrap' }}>
-              {college.phone && <span style={{ fontSize: '0.82rem', color: '#64748B' }}>📞 {college.phone}</span>}
+              {college.phone   && <span style={{ fontSize: '0.82rem', color: '#64748B' }}>📞 {college.phone}</span>}
               {college.website && <a href={college.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.82rem', color: college.color, textDecoration: 'none' }}>🌐 Website</a>}
             </div>
           )}
-          <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+
+          {/* ── Action buttons row ── */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <a href={college.mapsUrl} target="_blank" rel="noopener noreferrer"
               style={{ padding: '9px 18px', borderRadius: 10, background: college.color, color: '#fff', fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
               🗺️ Google Maps
@@ -212,6 +239,25 @@ function CollegeCard({ college, isNearest }) {
               style={{ padding: '9px 18px', borderRadius: 10, background: '#F8F4EF', color: '#334155', fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none', border: '1.5px solid #E8E0D5' }}>
               🌍 OpenStreetMap
             </a>
+
+            {/* ── SAVE BUTTON ── */}
+            <button
+              onClick={handleSaveToggle}
+              style={{
+                padding: '9px 18px', borderRadius: 10, cursor: 'pointer',
+                fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '0.85rem',
+                border: saved ? 'none' : '1.5px solid #E8E0D5',
+                background: saved
+                  ? 'linear-gradient(135deg,#F97316,#F59E0B)'
+                  : 'white',
+                color: saved ? '#fff' : '#64748B',
+                boxShadow: saved ? '0 4px 14px rgba(249,115,22,0.3)' : 'none',
+                transform: pulse ? 'scale(1.12)' : 'scale(1)',
+                transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+              }}
+            >
+              {saved ? '✅ Saved' : '💾 Save to Dashboard'}
+            </button>
           </div>
         </div>
       </div>
@@ -223,14 +269,14 @@ function CollegeCard({ college, isNearest }) {
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Colleges() {
-  const [colleges,  setColleges]  = useState([])
-  const [cityInput, setCityInput] = useState('')
-  const [cityName,  setCityName]  = useState('')
-  const [status,    setStatus]    = useState('idle')
-  const [radiusKm,  setRadiusKm]  = useState(20)
-  const [filter,    setFilter]    = useState('All')
-  const [search,    setSearch]    = useState('')
-  const [savedLoc,  setSavedLoc]  = useState(null)
+  const [colleges,   setColleges]   = useState([])
+  const [cityInput,  setCityInput]  = useState('')
+  const [cityName,   setCityName]   = useState('')
+  const [status,     setStatus]     = useState('idle')
+  const [radiusKm,   setRadiusKm]   = useState(20)
+  const [filter,     setFilter]     = useState('All')
+  const [search,     setSearch]     = useState('')
+  const [savedLoc,   setSavedLoc]   = useState(null)
   const [retryCount, setRetryCount] = useState(0)
 
   const runSearch = useCallback(async (lat, lng, radius, displayCity) => {
@@ -308,35 +354,21 @@ export default function Colleges() {
                 value={cityInput}
                 onChange={e => setCityInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                style={{
-                  width: '100%', padding: '13px 14px 13px 42px',
-                  borderRadius: 12, border: '1.5px solid #E8E0D5',
-                  fontFamily: 'Sora, sans-serif', fontSize: '0.95rem',
-                  color: '#1E293B', outline: 'none', boxSizing: 'border-box',
-                }}
-                onFocus={e => e.target.style.borderColor = '#F97316'}
-                onBlur={e => e.target.style.borderColor = '#E8E0D5'}
+                style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: 12, border: '1.5px solid #E8E0D5', fontFamily: 'Sora, sans-serif', fontSize: '0.95rem', color: '#1E293B', outline: 'none', boxSizing: 'border-box' }}
+                onFocus={e  => e.target.style.borderColor = '#F97316'}
+                onBlur={e   => e.target.style.borderColor = '#E8E0D5'}
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#FFF7ED', border: '1.5px solid #FED7AA', borderRadius: 12, padding: '8px 14px', flexShrink: 0 }}>
               <span style={{ fontSize: '0.82rem', color: '#92400E', fontFamily: 'Sora, sans-serif', fontWeight: 600, whiteSpace: 'nowrap' }}>📏 {radiusKm} km</span>
-              <input
-                type="range" min="5" max="100" step="5" value={radiusKm}
+              <input type="range" min="5" max="100" step="5" value={radiusKm}
                 onChange={e => setRadiusKm(Number(e.target.value))}
-                style={{ accentColor: '#F97316', width: 90 }}
-              />
+                style={{ accentColor: '#F97316', width: 90 }} />
             </div>
             <button
               onClick={handleSearch}
               disabled={isLoading || !cityInput.trim()}
-              style={{
-                padding: '13px 28px', borderRadius: 12, border: 'none',
-                background: isLoading || !cityInput.trim() ? '#FED7AA' : 'linear-gradient(135deg, #F97316, #F59E0B)',
-                color: 'white', fontFamily: 'Sora, sans-serif', fontWeight: 700,
-                fontSize: '0.95rem', cursor: isLoading || !cityInput.trim() ? 'not-allowed' : 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
+              style={{ padding: '13px 28px', borderRadius: 12, border: 'none', background: isLoading || !cityInput.trim() ? '#FED7AA' : 'linear-gradient(135deg, #F97316, #F59E0B)', color: 'white', fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '0.95rem', cursor: isLoading || !cityInput.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
               {isLoading ? '⏳ Searching…' : '🔍 Find Colleges'}
             </button>
           </div>
@@ -361,9 +393,7 @@ export default function Colleges() {
               <h4 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, color: '#1E293B', marginBottom: 2 }}>
                 Searching colleges near <span style={{ color: '#F97316' }}>{cityInput}</span>…
               </h4>
-              <p style={{ fontSize: '0.85rem', color: '#94A3B8' }}>
-                Querying OpenStreetMap within {radiusKm} km — this may take up to 20 seconds…
-              </p>
+              <p style={{ fontSize: '0.85rem', color: '#94A3B8' }}>Querying OpenStreetMap within {radiusKm} km — this may take up to 20 seconds…</p>
             </div>
           </div>
         )}
@@ -376,14 +406,12 @@ export default function Colleges() {
           </div>
         )}
 
-        {/* Status: error — now with retry button */}
+        {/* Status: error */}
         {status === 'error' && (
           <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 18, padding: '22px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <h4 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, color: '#DC2626', marginBottom: 4 }}>❌ Overpass API timed out</h4>
-              <p style={{ fontSize: '0.88rem', color: '#64748B' }}>
-                All map servers are busy right now. {retryCount > 0 ? `Tried ${retryCount} time(s).` : 'Try again in a moment.'}
-              </p>
+              <p style={{ fontSize: '0.88rem', color: '#64748B' }}>All map servers are busy right now. {retryCount > 0 ? `Tried ${retryCount} time(s).` : 'Try again in a moment.'}</p>
             </div>
             {savedLoc && (
               <button onClick={handleRetry}
