@@ -2,7 +2,7 @@
 
 **Live demo:** https://school-students-olive.vercel.app/
 
-PathFinder is a full-stack web app that helps Indian school students (Class 9–College) figure out what career and academic path suits them. It combines an interest-based quiz, curated field/career information, a nearby-college finder, and an AI study assistant — all behind a simple login/signup flow with a personal dashboard.
+PathFinder is a full-stack web app that helps Indian school students (Class 10–College) figure out what career and academic path suits them. It combines an interest-based quiz, curated field/career information, a nearby-college finder, and an AI study assistant — all behind a simple login/signup flow with a personal dashboard.
 
 ## ✨ Features
 
