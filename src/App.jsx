@@ -14,7 +14,7 @@ import Dashboard         from './pages/Dashboard'
 import Login             from './pages/Login'
 import Signup            from './pages/Signup'
 
-import LearnSection      from './components/LearnSection'  // ✅ new
+import LearnSection      from './components/LearnSection'  //  new added
 export default function App() {
   
   return (
